@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), AppConfig.dbName);
     
     // Delete existing database for testing
-    // await deleteDatabase(path);  // Remove this line in production!
+    await deleteDatabase(path);  // Remove this line in production!
     
     return await openDatabase(
       path,
@@ -38,7 +38,9 @@ class DatabaseService {
             duration_seconds INTEGER NOT NULL,
             average_speed REAL NOT NULL,
             over_speed_duration INTEGER NOT NULL,
-            sudden_acc_groups TEXT NOT NULL
+            sudden_acc_groups TEXT NOT NULL,
+            sudden_brake_groups TEXT NOT NULL,
+            sharp_turn_groups TEXT NOT NULL
           )
         ''');
 
@@ -56,6 +58,8 @@ class DatabaseService {
             accelerationZ REAL NOT NULL,
             totalAcceleration REAL NOT NULL,
             isSuddenAcceleration INTEGER NOT NULL,
+            isSuddenBraking INTEGER NOT NULL,
+            isSharpTurn INTEGER NOT NULL,
             FOREIGN KEY (drive_id) REFERENCES ${AppConfig.drivesTable}(id)
           )
         ''');

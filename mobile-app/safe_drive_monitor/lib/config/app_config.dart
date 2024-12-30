@@ -1,9 +1,15 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/settings.dart';
-import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
+import '../models/settings.dart';
 
 class AppConfig {
+  static SharedPreferences? _prefs;
+
+  static Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
   // Database configs
   static const String dbName = 'safe_drive_monitor.db';
   static const String recordsTable = 'driving_records';
@@ -38,13 +44,19 @@ class AppConfig {
   static const int warningDisplaySeconds = 5;
   static double speedWarningThreshold = 110.0; // km/h
 
+  // Telegram notification intervals (in seconds)
+  static const int speedAlertInterval = 1800;  // 30 minutes
+  static const int suddenEventAlertInterval = 300;  // 5 minutes
+
   // Telegram configs
-  static String get telegramBotToken => 
-      dotenv.env['TELEGRAM_BOT_TOKEN'] ?? '';
+  static const String telegramBotName = 'safe_drive_monitor_bot';
+  static String get telegramBotToken => dotenv.env['TELEGRAM_BOT_TOKEN'] ?? '';
+  static String get telegramChatId => _prefs?.getString('telegram_chat_id') ?? '';
+  static bool get isTelegramConfigured => 
+      telegramBotToken.isNotEmpty && telegramChatId.isNotEmpty;
 
   static Future<void> loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final settingsJson = prefs.getString('settings');
+    final settingsJson = _prefs?.getString('settings');
     if (settingsJson != null) {
       final settings = Settings.fromJson(jsonDecode(settingsJson));
       retentionDays = settings.retentionDays;

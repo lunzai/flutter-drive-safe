@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:televerse/televerse.dart';
-import '../config/app_config.dart';
+import '../services/telegram_service.dart';
 
 class TelegramSetupPage extends StatefulWidget {
   const TelegramSetupPage({Key? key}) : super(key: key);
@@ -14,7 +13,7 @@ class TelegramSetupPage extends StatefulWidget {
 
 class _TelegramSetupPageState extends State<TelegramSetupPage> {
   final TextEditingController _controller = TextEditingController();
-  final Bot _bot = Bot(AppConfig.telegramBotToken);
+  final TelegramService _telegramService = TelegramService();
 
   @override
   void initState() {
@@ -30,46 +29,6 @@ class _TelegramSetupPageState extends State<TelegramSetupPage> {
     });
   }
 
-  Future<void> _sendTestMessage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final chatId = prefs.getString('telegram_chat_id');
-    
-    if (chatId == null || chatId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter Chat ID first'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    try {
-      await _bot.api.sendMessage(
-        ChatID(int.parse(chatId)),
-        '✅ Test message from Safe Drive Monitor\n\nYour setup is working correctly!',
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Test message sent successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send test message. Please check your Chat ID.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   void dispose() {
     _controller.dispose();
@@ -77,9 +36,21 @@ class _TelegramSetupPageState extends State<TelegramSetupPage> {
   }
 
   Future<void> _launchTelegramBot() async {
-    final Uri url = Uri.parse('https://t.me/safe_drive_monitor_bot');
+    final Uri url = Uri.parse(TelegramService.getBotUrl());
     if (!await launchUrl(url)) {
       throw Exception('Could not launch $url');
+    }
+  }
+
+  Future<void> _sendTestMessage() async {
+    final success = await _telegramService.sendTestMessage();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Test message sent successfully!' : 'Please check your Chat ID'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
     }
   }
 

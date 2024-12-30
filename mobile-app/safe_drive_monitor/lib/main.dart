@@ -11,9 +11,13 @@ import 'dart:async';
 import 'package:safe_drive_monitor/pages/settings_page.dart';
 import 'package:safe_drive_monitor/pages/drive_list_page.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:safe_drive_monitor/services/telegram_service.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
+  await AppConfig.init();
+  await AppConfig.loadSettings();
   // Disable most framework logging
   debugPrint = (String? message, {int? wrapWidth}) {
     if (message?.contains('SDM_LOG:') ?? false) {
@@ -73,9 +77,10 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage> {
   final SensorService _sensorService = SensorService();
   final DatabaseService _dbService = DatabaseService();
+  final TelegramService _telegramService = TelegramService();
   double _x = 0.0;
   double _y = 0.0;
   double _z = 0.0;
@@ -83,14 +88,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   double _currentSpeed = 0.0;
   double _latitude = 0.0;
   double _longitude = 0.0;
-  Timer? _warningTimer;
-  bool _showWarning = false;
-  late AnimationController _warningAnimationController;
   AccelerometerEvent? _currentAccEvent;
 
   @override
   void initState() {
     super.initState();
+    AppConfig.loadSettings();
     _requestPermissions();
     _initializeLocationUpdates();
     _initializeAccelerometer();
@@ -104,22 +107,40 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   }
 
   void _initializeAccelerometer() {
-    accelerometerEvents.listen((AccelerometerEvent event) {
+    accelerometerEvents.listen((AccelerometerEvent event) async {
+      if (!mounted) return;
+      
       setState(() {
         _currentAccEvent = event;
         _x = event.x;
         _y = event.y;
         _z = event.z;
         _totalAcceleration = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        
-        // Check for sudden events and show warning
-        if (_sensorService.isSuddenAcceleration(event, AppConfig.suddenAccelerationThreshold) ||
-            _sensorService.isSuddenBraking(event, AppConfig.suddenBrakingThreshold) ||
-            _sensorService.isSharpTurn(event, AppConfig.sharpTurnThreshold)) {
-          _showTemporaryWarning();
-        }
       });
+
+      // Check for alerts when moving (outside setState)
+      if (_currentSpeed > 0) {
+        await _checkAndSendAlerts(event, _currentSpeed);
+      }
     });
+  }
+
+  Future<void> _checkAndSendAlerts(AccelerometerEvent event, double speed) async {
+    if (speed > AppConfig.speedThreshold) {
+      await _telegramService.sendSpeedAlert(speed);
+    }
+
+    if (_sensorService.isSuddenAcceleration(event, AppConfig.suddenAccelerationThreshold)) {
+      await _telegramService.sendSuddenEventAlert('acceleration', _totalAcceleration);
+    }
+
+    if (_sensorService.isSuddenBraking(event, AppConfig.suddenBrakingThreshold)) {
+      await _telegramService.sendSuddenEventAlert('braking', _totalAcceleration);
+    }
+
+    if (_sensorService.isSharpTurn(event, AppConfig.sharpTurnThreshold)) {
+      await _telegramService.sendSuddenEventAlert('turn', _totalAcceleration);
+    }
   }
 
   void _log(String message) {
@@ -170,22 +191,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         _longitude = position.longitude;
       });
     });
-  }
-
-  @override
-  void dispose() {
-    _warningTimer?.cancel();
-    _warningAnimationController.dispose();
-    super.dispose();
-  }
-
-  void _showTemporaryWarning() {
-    setState(() => _showWarning = true);
-    _warningTimer?.cancel();
-    _warningTimer = Timer(
-      Duration(seconds: AppConfig.warningDisplaySeconds),
-      () => setState(() => _showWarning = false)
-    );
   }
 
   @override
@@ -294,49 +299,6 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                       ],
                     ),
                   ),
-
-                  // Sudden Acceleration Warning
-                  if (_showWarning) ...[
-                    const SizedBox(height: 20),
-                    SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, -0.5),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: _warningAnimationController,
-                        curve: Curves.elasticOut,
-                      )),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.amber),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.withOpacity(0.3),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.warning_amber, color: Colors.amber),
-                            SizedBox(width: 8),
-                            Text(
-                              'Sudden Acceleration Detected!',
-                              style: TextStyle(color: Colors.amber),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
 
                   // Location Info
                   const SizedBox(height: 40),
