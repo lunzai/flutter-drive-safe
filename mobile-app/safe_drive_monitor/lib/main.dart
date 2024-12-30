@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'services/sensor_service.dart';
+import 'package:safe_drive_monitor/services/sensor_service.dart';
+import 'package:safe_drive_monitor/services/database_service.dart';
+import 'package:safe_drive_monitor/models/driving_record.dart';
 import 'dart:math';
 
 void main() {
@@ -61,6 +63,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final SensorService _sensorService = SensorService();
+  final DatabaseService _dbService = DatabaseService();
   String _accelerationStatus = 'Monitoring...';
   double _x = 0.0;
   double _y = 0.0;
@@ -103,13 +106,27 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _initializeLocationUpdates() async {
+  void _initializeLocationUpdates() {
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 1,
       ),
     ).listen((Position position) {
+      if (_dbService.shouldSample(position.speed * 3.6)) {
+        final record = DrivingRecord(
+          timestamp: DateTime.now(),
+          speed: position.speed * 3.6,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accelerationX: _x,
+          accelerationY: _y,
+          accelerationZ: _z,
+          totalAcceleration: _totalAcceleration,
+          isSuddenAcceleration: _accelerationStatus == 'Sudden acceleration detected!',
+        );
+        _dbService.insertRecord(record);
+      }
       setState(() {
         _currentSpeed = position.speed <= 0 ? 0.0 : (position.speed * 3.6).clamp(0, 200);
         _latitude = position.latitude;
@@ -124,6 +141,14 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              await _dbService.debugDatabase();
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
