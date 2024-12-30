@@ -26,4 +26,8 @@ class AppConfig {
   // Acceleration monitoring
   static const double suddenAccelerationThreshold = 20.0; // m/s²
   static const int suddenAccGroupInterval = 10; // seconds
+
+  // UI configs
+  static const int warningDisplaySeconds = 5;
+  static const double speedWarningThreshold = 110.0; // km/h
 } 

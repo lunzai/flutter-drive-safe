@@ -7,6 +7,7 @@ import 'package:safe_drive_monitor/services/database_service.dart';
 import 'package:safe_drive_monitor/models/driving_record.dart';
 import 'dart:math';
 import 'package:safe_drive_monitor/config/app_config.dart';
+import 'dart:async';
 
 void main() {
   // Disable most framework logging
@@ -68,7 +69,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
   final SensorService _sensorService = SensorService();
   final DatabaseService _dbService = DatabaseService();
   String _accelerationStatus = 'Monitoring...';
@@ -79,6 +80,9 @@ class _MyHomePageState extends State<MyHomePage> {
   double _currentSpeed = 0.0;
   double _latitude = 0.0;
   double _longitude = 0.0;
+  Timer? _warningTimer;
+  bool _showWarning = false;
+  late AnimationController _warningAnimationController;
 
   @override
   void initState() {
@@ -162,64 +166,200 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    _warningTimer?.cancel();
+    _warningAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _showTemporaryWarning() {
+    setState(() => _showWarning = true);
+    _warningTimer?.cancel();
+    _warningTimer = Timer(
+      Duration(seconds: AppConfig.warningDisplaySeconds),
+      () => setState(() => _showWarning = false)
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isOverSpeed = _currentSpeed > AppConfig.speedThreshold;
+    final speedProgress = (_currentSpeed / AppConfig.speedThreshold).clamp(0.0, 1.5);
+    final screenSize = MediaQuery.of(context).size;
+    final speedometerSize = screenSize.width * 0.75;
+    
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () async {
-              await _dbService.debugDatabase();
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Current Speed',
-              style: Theme.of(context).textTheme.titleLarge,
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Main Content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Speed Display
+                  TweenAnimationBuilder(
+                    tween: Tween<double>(begin: 0, end: _currentSpeed),
+                    duration: const Duration(milliseconds: 500),
+                    builder: (context, double speed, child) {
+                      return Container(
+                        width: speedometerSize,
+                        height: speedometerSize,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[900],
+                          boxShadow: [
+                            BoxShadow(
+                              color: isOverSpeed 
+                                  ? Colors.red.withOpacity(0.3) 
+                                  : Colors.blue.withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CircularProgressIndicator(
+                              value: speedProgress,
+                              strokeWidth: 15,
+                              backgroundColor: Colors.grey[800],
+                              color: isOverSpeed ? Colors.red : Colors.green,
+                            ),
+                            Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    speed.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      fontSize: speedometerSize * 0.2,
+                                      fontWeight: FontWeight.bold,
+                                      color: isOverSpeed ? Colors.red : Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    'km/h',
+                                    style: TextStyle(
+                                      fontSize: speedometerSize * 0.08,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Speed Limit Indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isOverSpeed ? Colors.red : Colors.grey,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.speed,
+                          color: isOverSpeed ? Colors.red : Colors.grey[400],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Speed Limit: ${AppConfig.speedThreshold.toStringAsFixed(0)} km/h',
+                          style: TextStyle(
+                            color: isOverSpeed ? Colors.red : Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Sudden Acceleration Warning
+                  if (_showWarning) ...[
+                    const SizedBox(height: 20),
+                    SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, -0.5),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: _warningAnimationController,
+                        curve: Curves.elasticOut,
+                      )),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.amber),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.amber.withOpacity(0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.warning_amber, color: Colors.amber),
+                            SizedBox(width: 8),
+                            Text(
+                              'Sudden Acceleration Detected!',
+                              style: TextStyle(color: Colors.amber),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Location Info
+                  const SizedBox(height: 40),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900]?.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      '${_latitude.toStringAsFixed(6)}, ${_longitude.toStringAsFixed(6)}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Text(
-              '${_currentSpeed.toStringAsFixed(1)} km/h',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Location',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text(
-              'Lat: ${_latitude.toStringAsFixed(6)}',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            Text(
-              'Long: ${_longitude.toStringAsFixed(6)}',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _accelerationStatus,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Accelerometer Data:',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text('X: ${_x.toStringAsFixed(2)} m/s²'),
-            Text('Y: ${_y.toStringAsFixed(2)} m/s²'),
-            Text('Z: ${_z.toStringAsFixed(2)} m/s²'),
-            const SizedBox(height: 10),
-            Text(
-              'Total Acceleration: ${_totalAcceleration.toStringAsFixed(2)} m/s²',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+
+            // Debug Button
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: Colors.grey[900],
+                child: const Icon(Icons.bug_report, color: Colors.white),
+                onPressed: () async {
+                  await _dbService.debugDatabase();
+                },
+              ),
             ),
           ],
         ),
