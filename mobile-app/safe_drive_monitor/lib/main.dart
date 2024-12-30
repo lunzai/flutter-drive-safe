@@ -8,6 +8,8 @@ import 'package:safe_drive_monitor/models/driving_record.dart';
 import 'dart:math';
 import 'package:safe_drive_monitor/config/app_config.dart';
 import 'dart:async';
+import 'package:safe_drive_monitor/pages/settings_page.dart';
+import 'package:safe_drive_monitor/pages/drive_list_page.dart';
 
 void main() {
   // Disable most framework logging
@@ -72,7 +74,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
   final SensorService _sensorService = SensorService();
   final DatabaseService _dbService = DatabaseService();
-  String _accelerationStatus = 'Monitoring...';
   double _x = 0.0;
   double _y = 0.0;
   double _z = 0.0;
@@ -83,6 +84,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   Timer? _warningTimer;
   bool _showWarning = false;
   late AnimationController _warningAnimationController;
+  AccelerometerEvent? _currentAccEvent;
 
   @override
   void initState() {
@@ -102,16 +104,17 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   void _initializeAccelerometer() {
     accelerometerEvents.listen((AccelerometerEvent event) {
       setState(() {
+        _currentAccEvent = event;
         _x = event.x;
         _y = event.y;
         _z = event.z;
-        _totalAcceleration = 
-            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        _totalAcceleration = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
         
-        if (_sensorService.isSuddenAcceleration(event, AppConfig.suddenAccelerationThreshold)) {
-          _accelerationStatus = 'Sudden acceleration detected!';
-        } else {
-          _accelerationStatus = 'Normal movement';
+        // Check for sudden events and show warning
+        if (_sensorService.isSuddenAcceleration(event, AppConfig.suddenAccelerationThreshold) ||
+            _sensorService.isSuddenBraking(event, AppConfig.suddenBrakingThreshold) ||
+            _sensorService.isSharpTurn(event, AppConfig.sharpTurnThreshold)) {
+          _showTemporaryWarning();
         }
       });
     });
@@ -153,7 +156,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           accelerationY: _y,
           accelerationZ: _z,
           totalAcceleration: _totalAcceleration,
-          isSuddenAcceleration: _accelerationStatus == 'Sudden acceleration detected!',
+          isSuddenAcceleration: _currentAccEvent != null ? _sensorService.isSuddenAcceleration(_currentAccEvent!, AppConfig.suddenAccelerationThreshold) : false,
+          isSuddenBraking: _currentAccEvent != null ? _sensorService.isSuddenBraking(_currentAccEvent!, AppConfig.suddenBrakingThreshold) : false,
+          isSharpTurn: _currentAccEvent != null ? _sensorService.isSharpTurn(_currentAccEvent!, AppConfig.sharpTurnThreshold) : false,
         );
         _dbService.insertRecord(record);
       }
@@ -348,17 +353,37 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               ),
             ),
 
-            // Debug Button
+            // Settings and History Buttons
             Positioned(
               right: 16,
               bottom: 16,
-              child: FloatingActionButton(
-                mini: true,
-                backgroundColor: Colors.grey[900],
-                child: const Icon(Icons.bug_report, color: Colors.white),
-                onPressed: () async {
-                  await _dbService.debugDatabase();
-                },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.grey[900],
+                    child: const Icon(Icons.history, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DriveListPage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.grey[900],
+                    child: const Icon(Icons.settings, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],

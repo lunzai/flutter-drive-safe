@@ -5,7 +5,9 @@ class Drive {
   final int durationSeconds;
   final double averageSpeed;
   final int overSpeedDurationSeconds;
-  final Map<int, int> suddenAccelerations; // timestamp -> count
+  final Map<int, int> suddenAccelerations;
+  final Map<int, int> suddenBrakings;
+  final Map<int, int> sharpTurns;
 
   Drive({
     this.id,
@@ -15,6 +17,8 @@ class Drive {
     required this.averageSpeed,
     required this.overSpeedDurationSeconds,
     required this.suddenAccelerations,
+    required this.suddenBrakings,
+    required this.sharpTurns,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,17 +29,19 @@ class Drive {
       'duration_seconds': durationSeconds,
       'average_speed': averageSpeed,
       'over_speed_duration': overSpeedDurationSeconds,
-      'sudden_acc_groups': _encodeSuddenAccelerations(),
+      'sudden_acc_groups': _encodeEventGroups(suddenAccelerations),
+      'sudden_brake_groups': _encodeEventGroups(suddenBrakings),
+      'sharp_turn_groups': _encodeEventGroups(sharpTurns),
     };
   }
 
-  String _encodeSuddenAccelerations() {
-    return suddenAccelerations.entries
+  String _encodeEventGroups(Map<int, int> groups) {
+    return groups.entries
         .map((e) => '${e.key}:${e.value}')
         .join(',');
   }
 
-  static Map<int, int> _decodeSuddenAccelerations(String encoded) {
+  static Map<int, int> _decodeEventGroups(String encoded) {
     if (encoded.isEmpty) return {};
     return Map.fromEntries(
       encoded.split(',').map((group) {
@@ -55,7 +61,9 @@ class Drive {
       durationSeconds: map['duration_seconds'],
       averageSpeed: map['average_speed'],
       overSpeedDurationSeconds: map['over_speed_duration'],
-      suddenAccelerations: _decodeSuddenAccelerations(map['sudden_acc_groups']),
+      suddenAccelerations: _decodeEventGroups(map['sudden_acc_groups'] ?? ''),
+      suddenBrakings: _decodeEventGroups(map['sudden_brake_groups'] ?? ''),
+      sharpTurns: _decodeEventGroups(map['sharp_turn_groups'] ?? ''),
     );
   }
 } 

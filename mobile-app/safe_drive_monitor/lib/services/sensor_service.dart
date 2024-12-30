@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -60,20 +59,19 @@ class SensorService {
 
   // Calculate if there's sudden acceleration
   bool isSuddenAcceleration(AccelerometerEvent event, double threshold) {
-    final double totalAcceleration = 
-        sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-    return totalAcceleration > threshold;
+    // Positive Y acceleration indicates forward acceleration
+    return event.y > threshold;
   }
 
   // Calculate if there's sudden braking
   bool isSuddenBraking(AccelerometerEvent event, double threshold) {
-    // Typically detected by negative acceleration in the direction of travel
-    return event.y < -threshold;
+    // Negative Y acceleration indicates braking
+    return event.y < threshold;
   }
 
   // Calculate if there's sharp turning
   bool isSharpTurn(AccelerometerEvent event, double threshold) {
-    // Detected by lateral acceleration (x-axis)
+    // Lateral acceleration (x-axis)
     return event.x.abs() > threshold;
   }
 

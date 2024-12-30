@@ -128,6 +128,8 @@ class DatabaseService {
         averageSpeed: 0,
         overSpeedDurationSeconds: 0,
         suddenAccelerations: {},
+        suddenBrakings: {},
+        sharpTurns: {},
       ).toMap(),
     );
   }
@@ -154,8 +156,11 @@ class DatabaseService {
     final suddenAccGroups = <int, int>{};
     for (var record in records.where((r) => r['isSuddenAcceleration'] == 1)) {
       final timestamp = record['timestamp'] as int;
-      final groupKey = timestamp ~/ (AppConfig.suddenAccGroupInterval * 1000);
-      suddenAccGroups[groupKey] = (suddenAccGroups[groupKey] ?? 0) + 1;
+      final interval = timestamp ~/ (AppConfig.suddenEventGroupInterval * 1000);
+      
+      if (record['isSuddenAcceleration'] == 1) {
+        suddenAccGroups[interval] = (suddenAccGroups[interval] ?? 0) + 1;
+      }
     }
 
     await db.update(
@@ -186,6 +191,8 @@ class DatabaseService {
       accelerationZ: record.accelerationZ,
       totalAcceleration: record.totalAcceleration,
       isSuddenAcceleration: record.isSuddenAcceleration,
+      isSuddenBraking: record.isSuddenBraking,
+      isSharpTurn: record.isSharpTurn,
     );
 
     _recordBuffer.add(recordWithDrive);
@@ -245,5 +252,15 @@ class DatabaseService {
     } catch (e) {
       print('SDM_LOG: Database error: $e');
     }
+  }
+
+  Future<List<Drive>> getDrives() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      AppConfig.drivesTable,
+      orderBy: 'start_time DESC',
+    );
+    
+    return List.generate(maps.length, (i) => Drive.fromMap(maps[i]));
   }
 }

@@ -10,6 +10,8 @@ class DrivingRecord {
   final double accelerationZ;
   final double totalAcceleration;
   final bool isSuddenAcceleration;
+  final bool isSuddenBraking;
+  final bool isSharpTurn;
 
   DrivingRecord({
     this.id,
@@ -23,6 +25,8 @@ class DrivingRecord {
     required this.accelerationZ,
     required this.totalAcceleration,
     required this.isSuddenAcceleration,
+    required this.isSuddenBraking,
+    required this.isSharpTurn,
   });
 
   Map<String, dynamic> toMap() {
@@ -38,6 +42,8 @@ class DrivingRecord {
       'accelerationZ': accelerationZ,
       'totalAcceleration': totalAcceleration,
       'isSuddenAcceleration': isSuddenAcceleration ? 1 : 0,
+      'isSuddenBraking': isSuddenBraking ? 1 : 0,
+      'isSharpTurn': isSharpTurn ? 1 : 0,
     };
   }
 
@@ -54,6 +60,8 @@ class DrivingRecord {
       accelerationZ: map['accelerationZ'],
       totalAcceleration: map['totalAcceleration'],
       isSuddenAcceleration: map['isSuddenAcceleration'] == 1,
+      isSuddenBraking: map['isSuddenBraking'] == 1,
+      isSharpTurn: map['isSharpTurn'] == 1,
     );
   }
 } 
