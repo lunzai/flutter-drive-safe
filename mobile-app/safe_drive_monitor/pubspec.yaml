@@ -18,6 +18,8 @@ dependencies:
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.0
   url_launcher: ^6.3.1
+  televerse: ^2.1.1
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -25,4 +27,6 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
-  uses-material-design: true 
+  uses-material-design: true
+  assets:
+    - .env 

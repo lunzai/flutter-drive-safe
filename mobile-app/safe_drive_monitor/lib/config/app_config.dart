@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
   // Database configs
@@ -36,6 +37,10 @@ class AppConfig {
   // UI configs
   static const int warningDisplaySeconds = 5;
   static double speedWarningThreshold = 110.0; // km/h
+
+  // Telegram configs
+  static String get telegramBotToken => 
+      dotenv.env['TELEGRAM_BOT_TOKEN'] ?? '';
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();

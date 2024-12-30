@@ -239,20 +239,26 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
             
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                minimumSize: const Size(double.infinity, 50),
+            if (AppConfig.telegramBotToken.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TelegramSetupPage()),
+                  );
+                },
+                child: const Text(
+                  'Setup Telegram Notification',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TelegramSetupPage()),
-                );
-              },
-              child: const Text('Setup Parent Alerts'),
-            ),
+            ],
           ],
         ),
       ),

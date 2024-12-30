@@ -10,8 +10,10 @@ import 'package:safe_drive_monitor/config/app_config.dart';
 import 'dart:async';
 import 'package:safe_drive_monitor/pages/settings_page.dart';
 import 'package:safe_drive_monitor/pages/drive_list_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  await dotenv.load();
   // Disable most framework logging
   debugPrint = (String? message, {int? wrapWidth}) {
     if (message?.contains('SDM_LOG:') ?? false) {
