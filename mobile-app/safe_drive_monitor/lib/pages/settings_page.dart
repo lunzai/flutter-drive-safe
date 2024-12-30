@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../models/settings.dart';
 import '../config/app_config.dart';
 import '../main.dart';
+import './telegram_setup_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -234,6 +235,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   );
                 });
               },
+            ),
+
+            const SizedBox(height: 24),
+            
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TelegramSetupPage()),
+                );
+              },
+              child: const Text('Setup Parent Alerts'),
             ),
           ],
         ),

@@ -85,3 +85,6 @@ GoogleService-Info.plist
 *.g.dart
 *.freezed.dart
 *.mocks.dart
+
+**/telegram-bot/package
+**/telegram-bot/deployment.zip
