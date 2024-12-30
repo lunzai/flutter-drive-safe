@@ -1,5 +1,6 @@
 class DrivingRecord {
   final int? id;
+  final int? driveId;
   final DateTime timestamp;
   final double speed;
   final double latitude;
@@ -12,6 +13,7 @@ class DrivingRecord {
 
   DrivingRecord({
     this.id,
+    this.driveId,
     required this.timestamp,
     required this.speed,
     required this.latitude,
@@ -26,6 +28,7 @@ class DrivingRecord {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'drive_id': driveId,
       'timestamp': timestamp.millisecondsSinceEpoch,
       'speed': speed,
       'latitude': latitude,
@@ -36,5 +39,21 @@ class DrivingRecord {
       'totalAcceleration': totalAcceleration,
       'isSuddenAcceleration': isSuddenAcceleration ? 1 : 0,
     };
+  }
+
+  static DrivingRecord fromMap(Map<String, dynamic> map) {
+    return DrivingRecord(
+      id: map['id'],
+      driveId: map['drive_id'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
+      speed: map['speed'],
+      latitude: map['latitude'],
+      longitude: map['longitude'],
+      accelerationX: map['accelerationX'],
+      accelerationY: map['accelerationY'],
+      accelerationZ: map['accelerationZ'],
+      totalAcceleration: map['totalAcceleration'],
+      isSuddenAcceleration: map['isSuddenAcceleration'] == 1,
+    );
   }
 } 

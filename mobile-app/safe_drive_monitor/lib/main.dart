@@ -6,8 +6,15 @@ import 'package:safe_drive_monitor/services/sensor_service.dart';
 import 'package:safe_drive_monitor/services/database_service.dart';
 import 'package:safe_drive_monitor/models/driving_record.dart';
 import 'dart:math';
+import 'package:safe_drive_monitor/config/app_config.dart';
 
 void main() {
+  // Disable most framework logging
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message?.contains('SDM_LOG:') ?? false) {
+      print(message);
+    }
+  };
   runApp(const MyApp());
 }
 
@@ -97,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _totalAcceleration = 
             sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
         
-        if (_sensorService.isSuddenAcceleration(event, 20.0)) {
+        if (_sensorService.isSuddenAcceleration(event, AppConfig.suddenAccelerationThreshold)) {
           _accelerationStatus = 'Sudden acceleration detected!';
         } else {
           _accelerationStatus = 'Normal movement';
@@ -106,7 +113,26 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _initializeLocationUpdates() {
+  void _log(String message) {
+    print('SDM_LOG: $message');
+  }
+
+  void _initializeLocationUpdates() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _log('Location services are disabled');
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _log('Location permissions are denied');
+        return;
+      }
+    }
+
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
