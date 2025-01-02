@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), AppConfig.dbName);
     
     // Delete existing database for testing
-    await deleteDatabase(path);  // Remove this line in production!
+    // await deleteDatabase(path);  // Remove this line in production!
     
     return await openDatabase(
       path,
