@@ -44,7 +44,18 @@ This project was developed to:
 - Sensors Plus
 ## Development Notes
 This project was developed through conversation-based programming with Cursor AI.
+## Screenshots
+![Screenshot_1737011920](https://github.com/user-attachments/assets/ed6079d8-5223-4f25-b988-74be0f522b73)
+
+![Screenshot_1737011981](https://github.com/user-attachments/assets/7ad42e5e-800b-4e14-9daf-32b196fa0bed)
+
+![Screenshot_1737011936](https://github.com/user-attachments/assets/5239a15b-1974-42d0-9fa3-ec133ff8d65f)
+
+![Screenshot_1737011945](https://github.com/user-attachments/assets/eeb75879-a672-48e8-8bda-8dfad0058fdf)
+
+![image](https://github.com/user-attachments/assets/abe5cda4-88d5-42fa-b335-2186f1cd8027)
 
 ## License
 
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License - see the [LICENSE.md](LICENSE.md) file for details.
+
