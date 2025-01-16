@@ -64,7 +64,7 @@ Speed limit: ${AppConfig.speedThreshold.toStringAsFixed(0)} km/h
       String message;
       switch (eventType) {
         case 'acceleration':
-          emoji = '🏃';
+          emoji = '🚗';
           message = 'Sudden acceleration detected';
           break;
         case 'braking':
@@ -84,7 +84,7 @@ Speed limit: ${AppConfig.speedThreshold.toStringAsFixed(0)} km/h
         '''
 $emoji $message!
 
-Force: ${value.abs().toStringAsFixed(1)} m/s²
+Force: ${(value.abs() / 9.81).toStringAsFixed(2)}g
 ''',
       );
       return true;

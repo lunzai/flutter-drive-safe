@@ -12,6 +12,7 @@ import 'package:safe_drive_monitor/pages/settings_page.dart';
 import 'package:safe_drive_monitor/pages/drive_list_page.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:safe_drive_monitor/services/telegram_service.dart';
+import 'package:safe_drive_monitor/services/background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,6 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _requestPermissions();
     _initializeLocationUpdates();
     _initializeAccelerometer();
+    BackgroundService.startService();  // Start background service
   }
 
   Future<void> _requestPermissions() async {
