@@ -1,6 +1,3 @@
-> [!NOTE]
-> Work in progress
-
 # Safe Drive Monitor
 A Flutter-based driving monitoring application developed as a Proof of Concept (POC) through AI pair programming using Cursor AI. This project serves as an experimental exploration into AI-assisted development, highlighting both the potential and limitations of AI pair programming.
 ## Motivation
